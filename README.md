@@ -39,7 +39,5 @@ The [notebooks](/notebook/) containing the analyses can now be launched :
 
 
 
-## License
-FAIR-Checker is released under the [MIT License](LICENSE). Some third-party components are included. They are subject to their own licenses. All of the license information can be found in the included [LICENSE](LICENSE) file.
 
 
