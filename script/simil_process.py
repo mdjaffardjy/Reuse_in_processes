@@ -9,7 +9,8 @@ This script contains the functions necessary for computing the semantic similari
 for the code of processes in nextflow and snakemake
 
 In order to use this functions you will need :
-    - a list of dict for the processes with the keys
+    - a list of dict for the processes with the keys :
+            name, shell, 
     - a list of dict for the workflows 
 """
 import json
@@ -19,44 +20,12 @@ import pandas as pd
 import math
 import time
 import ngram
-
+from collections import Counter
 
 #compute levenshtein for snakemake
-def levenshtein_proc(rules, resume=0, output_file = "/home/marinedjaffardjy/Documents/Code/Similarite_process/json/levenshtein/levenshtein_tool_snk"):
-    #input : 
-    #    list of snakemake rules in form of a json
-    #    resume : int at which the computation will be restarted
-    #    output_file : string model of the names for the output files
-    #    output_file_resume : string file for the scores already computed in the case of a resume
-    #output : table of dict with scores. also saves the scores for all pairs of processes in json (path )
-    v1 = rules.copy()[resume:-1]
-    v2 = rules.copy()[resume+1:]
-    i = 0
-    scores = []
-    
-    #compute score for proc1 and all other processes after it in the list
-    for rule1 in v1:
-        print(str(i)+"/"+str(len(v1)))
-        i+=1
-        for rule2 in v2:
-            score = jellyfish.levenshtein_distance(rule1['code'],rule2['code'])
-            l = max(len(rule1['code']),len(rule2['code']))
-            scores.append({"rule1":rule1["wf_orig"]+"/"+rule1["name"],
-                           "rule2":rule2["wf_orig"]+"/"+rule2["name"],
-                           "levenshtein":(l-score)/l})
-        if(len(v2)>=2):
-            v2 = v2[1:]
-        
-        #save all scores for 50 processes
-        if(i%50==0 or i ==len(v1) ):
-            with open(output_file+"_"+str(i+resume)+".json","w") as f:
-                print(output_file+"_"+str(i+resume)+".json")
-                json.dump(scores,f)
-                f.close
-                scores = []
-    return scores
 
-def levenshtein_proc_shell(rules, resume=0, output_file = "/home/marinedjaffardjy/Documents/Code/Similarite_process/json/levenshtein/levenshtein_test"):
+
+def levenshtein_proc_shell(rules, resume=0, output_file = "../json/levenshtein_shell/levenshtein_"):
     #input : 
     #    list of snakemake rules in form of a json
     #    resume : int at which the computation will be restarted
@@ -90,45 +59,20 @@ def levenshtein_proc_shell(rules, resume=0, output_file = "/home/marinedjaffardj
                 json.dump(scores,f)
                 f.close
                 scores = []
-    return scores
-
-def ngram_proc(rules, output_file , resume=0,n_size=3):
-    #input : 
-    #    list of snakemake rules in form of a json
-    #    resume : int at which the computation will be restarted
-    #    output_file : string model of the names for the output files (ex : "/home/marinedjaffardjy/Documents/Code/Similarite_process/json/ngram_snk_tool")
-    #output : table of dict with scores. also saves the scores for all pairs of processes in json (path )
-    v1 = rules.copy()[resume:-1]
-    v2 = rules.copy()[resume+1:]
-    i = 0
-    scores = []
     
-    time1= time.time()
-    for rule1 in v1:
-        print(str(i)+"/"+str(len(v1)))
-        i+=1
-        for rule2 in v2:
-            score = ngram.NGram.compare(rule1['code'],rule2['code'],N=n_size)
-            scores.append({"rule1":rule1["wf_orig"]+"/"+rule1["name"],
-                           "rule2":rule2["wf_orig"]+"/"+rule2["name"],
-                           "ngram":score})
-        if(len(v2)>=2):
-            v2 = v2[1:]
-        if(i%50==0 or i ==len(v1) ):
-            with open(output_file+"_"+str(i+resume)+".json","w") as f:
-                print(output_file+"_"+str(i+resume)+".json")
-                json.dump(scores,f)
-                f.close
-                scores = []
-            
-            print("time elapsed : "+str(time.time()-time1)+" sec ")
-    return scores
 
 
 
 def make_score_matrices(nb_proc,path_matrix,path_scores,model_filename,score_name):
+    # inputs : 
+    # - the number of processes : int
+    # - the path of the folder where to save the matrix : string
+    # - the path where to find the scores : string
+    # - the path "model" of the scores files : ex ("lev_" for "../json/levenshtein/lev_150.json")
+    # - the key for the score in the score files : string
+        
     #get execution time :
-    time1= time.time()
+    #time1= time.time()
     #list the scores filenames and sizes
     sizes=[]
     filenames=[]
@@ -167,20 +111,22 @@ def make_score_matrices(nb_proc,path_matrix,path_scores,model_filename,score_nam
         print(matrix_filename)
         with open(matrix_filename,"w") as file_json:
             json.dump(new_matrix,file_json)
-        print(time.time()-time1)
+        #print(time.time()-time1)
     return matrix_filenames
 
 def get_matrix_files(path_matrix,nb_proc):
-    mat_nf_ngram=[]
+    matrices=[]
     i=50
     while i <=(nb_proc-1):
         matrix_filename= path_matrix+"/matrix_"+str(i)+".json"
-        mat_nf_ngram.append(matrix_filename)
+        matrices.append(matrix_filename)
         i+=50
     if((nb_proc-1)%50!=0):
         matrix_filename= path_matrix+"/matrix_"+str(nb_proc-1)+".json"
-        mat_nf_ngram.append(matrix_filename) 
-    return mat_nf_ngram
+        matrices.append(matrix_filename) 
+    return matrices
+
+
 
 def grouping_simple(matrix_list,obj_list,treshold=0.85,ignore_nf=[]):
     #this function helps making groups by using a similarity matric split in different files
@@ -192,7 +138,7 @@ def grouping_simple(matrix_list,obj_list,treshold=0.85,ignore_nf=[]):
     #output = list of dict and list of indexes of rules
     
      #get execution time :
-    time1= time.time()
+    #time1= time.time()
     to_ignore=ignore_nf #add proc in wf nfcore indexes
     groups=[]
     line_nb=0
@@ -201,6 +147,7 @@ def grouping_simple(matrix_list,obj_list,treshold=0.85,ignore_nf=[]):
         with open(file_matrix) as f:
             matrice=json.load(f)
         for line in matrice:
+            print(sum([x>treshold for x in line]))
             if line_nb not in to_ignore:
                 new_group=[line_nb]
                 for j in range(0,len(line)):
@@ -218,8 +165,9 @@ def grouping_simple(matrix_list,obj_list,treshold=0.85,ignore_nf=[]):
             group_obj.append(obj_list[el])
         simil_obj.append(group_obj)
     print(len(simil_obj))
-    print(time.time()-time1)
+    #print(time.time()-time1)
     return simil_obj, groups
+
 
 
 def sim_to_df(groups_list, dict_wf,sys):
@@ -267,36 +215,10 @@ def sim_to_df(groups_list, dict_wf,sys):
     #print(groups_sim_df)
     return groups_sim_df,pd.DataFrame(groups_sim_df)
 
-# group the processes per nb of times reused
-def grouping_sim_df (df_sim_n,nb_groups,dict_wf ):
-    df_sim = df_sim_n.copy()
-    tot_group = nb_groups
-    vals = set(list(df_sim["nb_reuse"])+list(df_sim["nb_wf"])+list(df_sim["nb_own"]))
-    tot_wf = len(dict_wf)
-    tot_own = np.sum(df_sim_n["nb_own"])
 
-    df_sim_group = pd.DataFrame(columns=["nb_reuse", "nb_proc","prop_proc","nb_own","prop_own","nb_wf","prop_wf"])
-    for val in vals :
-        nb_proc = len(df_sim.loc[df_sim["nb_reuse"]==val])
-        prop_proc = nb_proc/tot_group
-        nb_own = len(df_sim.loc[df_sim["nb_own"]==val])
-        prop_own = nb_own/tot_group
-        nb_wf = len(df_sim.loc[df_sim["nb_wf"]==val])
-        prop_wf = nb_wf/tot_group
-        df_sim_group = df_sim_group.append({"nb_reuse":val,
-                                            "nb_proc":nb_proc,
-                                            "prop_proc":prop_proc*100.0,
-                                            "nb_own":nb_own,
-                                            "prop_own":prop_own*100.0,
-                                            "nb_wf":nb_wf,
-                                            "prop_wf":prop_wf*100.0}, ignore_index = True)
-    
-    return df_sim_group.sort_values(by=["nb_reuse"], ascending=True)
-
-
-
-
-def grouping_sim_df_wf (df_sim_n,nb_groups,dict_wf,dict_auth):
+def grouping_sim_df_wf (df_sim_n,nb_groups):
+    #takes the df with info about the groups  (=unique processes) and groups them by number of wf used in
+    #output : list of dict, equivalent dataframe
     df_sim = df_sim_n.copy()
     vals = set(df_sim["nb_wf"])
     tot_group = nb_groups
@@ -311,22 +233,6 @@ def grouping_sim_df_wf (df_sim_n,nb_groups,dict_wf,dict_auth):
                                             "nb_wf":val}, ignore_index = True)
     
     return df_sim_group.sort_values(by=["nb_wf"], ascending=False)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

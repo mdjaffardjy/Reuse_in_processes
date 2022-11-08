@@ -6,148 +6,169 @@ Created on Wed Aug 24 00:05:02 2022
 @author: marinedjaffardjy
 """
 
-### this script computes levenshtein for nf proc with tools, nf proc without tools, snk proc with tools
-### it also computes levenshtein for workflows -- using batches (?)
+### this script computes levenshtein for snk and nf proc with tools
 import json
-import jellyfish
-import numpy
-import pandas as pd
-import math
 import time
+import simil_process
 
 ################
 # DEFINING VARIABLES
 ################
 
+time0 = time.time()
+
+####### WHERE THE SCORES OF PROC SIMILARITY ARE
+ 
+snk_proc_path = "../json/levenshtein_snk_tools_shell/levenshtein_snk_tools_shell"   
+nf_proc_path = "../json/levenshtein_nf_tools_shell/levenshtein_nf_tools_shell"
+
+snk_sim_path = "../json/levenshtein_snk_tools_shell/"   
+nf_sim_path = "../json/levenshtein_nf_tools_shell/"
+
+
+##### WHERE WE WANT TO SAVE THE MATRICES ##############
+    
+path_matrix_nf_lev="../json/matrix_nf_levenshtein"
+path_matrix_snk_lev="../json/matrix_snk_levenshtein"
+
+
+
 ################
 # IMPORTING THE FILES
 ################
 
-##import snakemake rules
-#with open('/home/marinedjaffardjy/Documents/Code/Similarite_process/json/snk_rules_no_tools.json') as f:
-#    snk_rules_no_tools = json.load(f)
-##import snakemake rule with tools
-#with open('json/snk_rule_info_tool.json') as f:
-#    snk_tools = json.load(f)
-#with open("/home/marinedjaffardjy/Documents/Code/Similarite_process/json/nf_rules_no_tools.json") as f:
-#    nf_rules_no_tools = json.load(f)  
-
-time1 = time.time()
     
-with open("/home/marinedjaffardjy/Documents/Code/Similarite_process/json/nf_proc_tool_shell.json") as f:
-    nf_rules_tools_shell = json.load(f)
+with open("../json/nf_proc_tool_shell.json") as f:
+    nf_proc = json.load(f)
     
 with open('../json/snk_proc_tool_shell.json') as f:
-    snk_rules_tools_shell= json.load(f)
+    snk_proc = json.load(f)
+    
+def importing_json_files(file_wf):
+    f_wf = open(file_wf) #informations for nf
+    # returns JSON object as
+    # a dictionary
+    wf = json.load(f_wf)
+    f_wf.close
+    return wf
+
+#importing the wf and auth dict (github info)
+dict_nf = importing_json_files('../json/wf_new_crawl_nextflow.json')
+auth_nf = importing_json_files('../json/author_clem_nf.json')
+dict_snk = importing_json_files('../json/wf_crawl_snakemake.json')
+auth_snk = importing_json_files('../json/author_clem_snk.json')
+
     
 ################
-# DEFINING THE FUNCTIONS
-################    
+# LAUNCHING THE PIPELINE
+################
+
+# # STEP 1 : compute levenshtein scores
+
+# print(" COMPUTING SCORES" )
+
+# ##nf tools proc shell
+# print("Nextflow :")
+# print("levenshtein")
+# simil_process.levenshtein_proc_shell(nf_proc,0,nf_proc_path)
+
+
+# print("total run time "+str(time.time()-time0))
+
+# #snk tools proc shell
+# print("Snakemake :")
+# print("levenshtein")
+# simil_process.levenshtein_proc_shell(snk_proc,0,snk_proc_path)
+
+
+# print("total run time "+str(time.time()-time0))
+
+
+# STEP 2 : make score matrices
+
+# print(" MAKING THE SCORE MATRICES" )
+
+# print("Nextflow :")
+# print("levenshtein")
+# mat_nf_lev = simil_process.make_score_matrices(len(nf_proc),path_matrix_nf_lev,nf_sim_path,"levenshtein_nf_tools_shell_","levenshtein")
+
+# print("Snakemake :")
+# print("levenshtein")
+# mat_snk_lev = simil_process.make_score_matrices(len(snk_proc),path_matrix_snk_lev,snk_sim_path,"levenshtein_snk_tools_shell_","levenshtein")
+
+# print("total run time "+str(time.time()-time0))
+
+
+mat_nf_lev = simil_process.get_matrix_files(path_matrix_nf_lev,len(nf_proc))
+mat_snk_lev = simil_process.get_matrix_files(path_matrix_snk_lev,len(snk_proc))
+
+# # Step 3 : make the groups
+
+print(" MAKING THE GROUPS" )
+
+print("Nextflow :")
+print("levenshtein")
+groups_nf_lev,groups_nf_lev_index = simil_process.grouping_simple(mat_nf_lev,nf_proc)
+
+filename = "../json/group_nf_lev.json"
+with open(filename,"w") as f:
+    json.dump(groups_nf_lev,f)
+    print(filename)
     
-#compute levenshtein for snakemake
-def levenshtein_proc(rules, resume=0, output_file = "/home/marinedjaffardjy/Documents/Code/Similarite_process/json/levenshtein/levenshtein_tool_snk"):
-    #input : 
-    #    list of snakemake rules in form of a json
-    #    resume : int at which the computation will be restarted
-    #    output_file : string model of the names for the output files
-    #    output_file_resume : string file for the scores already computed in the case of a resume
-    #output : table of dict with scores. also saves the scores for all pairs of processes in json (path )
-    v1 = rules.copy()[resume:-1]
-    v2 = rules.copy()[resume+1:]
-    i = 0
-    scores = []
-    #if(resume>0):
-        #with open(outputfile_resume) as f:
-            #scores = json.load(f)
-            #f.close
-    #else :
-        #scores = []
-    for rule1 in v1:
-        print(str(i)+"/"+str(len(v1)))
-        i+=1
-        for rule2 in v2:
-            score = jellyfish.levenshtein_distance(rule1['code'],rule2['code'])
-            l = max(len(rule1['code']),len(rule2['code']))
-            scores.append({"rule1":rule1["wf_orig"]+"/"+rule1["name"],
-                           "rule2":rule2["wf_orig"]+"/"+rule2["name"],
-                           "levenshtein":(l-score)/l})
-        if(len(v2)>=2):
-            v2 = v2[1:]
-        if(i%50==0 or i ==len(v1) ):
-            with open(output_file+"_"+str(i+resume)+".json","w") as f:
-                print(output_file+"_"+str(i+resume)+".json")
-                json.dump(scores,f)
-                f.close
-                scores = []
-    return scores
-
-def levenshtein_proc_shell(rules, resume=0, output_file = "/home/marinedjaffardjy/Documents/Code/Similarite_process/json/levenshtein/levenshtein_test"):
-    #input : 
-    #    list of snakemake rules in form of a json
-    #    resume : int at which the computation will be restarted
-    #    output_file : string model of the names for the output files
-    #    output_file_resume : string file for the scores already computed in the case of a resume
-    #output : table of dict with scores. also saves the scores for all pairs of processes in json (path )
-    v1 = rules.copy()[resume:-1]
-    v2 = rules.copy()[resume+1:]
-    i = 0
-    scores = []
     
-    #compute score for proc1 and all other processes after it in the list
-    for rule1 in v1:
-        print(str(i)+"/"+str(len(v1)))
-        i+=1
-        for rule2 in v2:
-            code1 = rule1['shell_modif']
-            code2 = rule2['shell_modif']
-            score = jellyfish.levenshtein_distance(code1,code2)
-            l = max(len(code1),len(code2))
-            if(l==0):
-                lev=0
-            else:
-                lev=(l-score)/l
-            scores.append({"rule1":rule1["name"],
-                           "rule2":rule2["name"],
-                           "levenshtein":lev})
-        if(len(v2)>=2):
-            v2 = v2[1:]
-        
-        #save all scores for 50 processes
-        if(i%50==0 or i ==len(v1) ):
-            with open(output_file+"_"+str(i+resume)+".json","w") as f:
-                print(output_file+"_"+str(i+resume)+".json")
-                json.dump(scores,f)
-                f.close
-                scores = []
-                print(time.time()-time1)
-    return scores
+print("Snakemake :")
+print("levenshtein")
+groups_snk_lev,groups_snk_lev_index = simil_process.grouping_simple(mat_snk_lev,snk_proc)
 
-#### launch script
- 
-snk_proc_path = "/home/marinedjaffardjy/Documents/Code/Similarite_process/json/levenshtein_snk_tools_shell/levenshtein_snk_tools_shell"   
-nf_proc_path = "/home/marinedjaffardjy/Documents/Code/Similarite_process/json/levenshtein_nf_tools_shell/levenshtein_nf_tools_shell"
+filename = "../json/group_snk_lev.json"
+with open(filename,"w") as f:
+    json.dump(groups_snk_lev,f)
+    print(filename)
+    
 
-##nf tools proc shell
-#nf_scores_shell = levenshtein_proc_shell(nf_rules_tools_shell,0,nf_proc_path)
+filenames = ["../json/group_nf_lev.json",
+            "../json/group_nf_ngram.json",
+            "../json/group_snk_lev.json",
+            "../json/group_snk_ngram.json"]
 
-#snk tools proc shell
-snk_scores_shell = levenshtein_proc_shell(snk_rules_tools_shell,0,snk_proc_path)
+print("total run time "+str(time.time()-time0))
+
+# Step 4 : make the json and dataframe for the groups and group the dataframe with regards to the number of workflows a process is in
 
 
-#snk_scores = levenshtein_proc(snk_tools,500,snk_proc_path)
+print(" MAKING THE DATAFRAMES" )
 
+print("Nextflow :")
+print("levenshtein")
 
-#nf tools proc
+nf_lev_json, nf_lev_df = simil_process.sim_to_df(groups_nf_lev,dict_nf,"nf")
+df_lev_nf_wf = simil_process.grouping_sim_df_wf(nf_lev_df,len(nf_lev_json))
 
-#nf_scores = levenshtein_proc(nf_rules_tools,3850,nf_proc_path,outputfile_resume="/home/marinedjaffardjy/Documents/Code/Similarite_process/json/levenshtein_nf_tools/levenshtein_nf_tools_3800.json")
+filename = "../json/sim_nf_lev.json"
+filename2 = "../csv/sim_nf_lev_wf.csv"
 
-#snk_no_tools_scores = levenshtein_proc(snk_rules_no_tools,0,snk_all_path)
+with open(filename,"w") as f:
+    json.dump(nf_lev_json,f)
+    print(filename)
+df_lev_nf_wf.to_csv(filename2)
+    
+print("Snakemake :")
+print("levenshtein")
 
-#nf_no_tools_scores = levenshtein_proc(nf_rules_no_tools,0,nf_all_path)
+snk_lev_json, snk_lev_df = simil_process.sim_to_df(groups_snk_lev,dict_snk,"snk")
+df_lev_snk_wf = simil_process.grouping_sim_df_wf(snk_lev_df,len(snk_lev_json))
 
+filename = "../json/sim_snk_lev.json"
+filename2 = "../csv/sim_snk_lev_wf.csv"
 
+with open(filename,"w") as f:
+    json.dump(snk_lev_json,f)
+    print(filename)
+df_lev_snk_wf.to_csv(filename2)
 
+print("total run time "+str(time.time()-time0))
 
+#TODO : verify grouping...
 
 
 
