@@ -17,10 +17,6 @@ import json
 import jellyfish
 import numpy as np
 import pandas as pd
-import math
-import time
-import ngram
-from collections import Counter
 
 #compute levenshtein for snakemake
 
@@ -128,32 +124,33 @@ def get_matrix_files(path_matrix,nb_proc):
 
 
 
-def grouping_simple(matrix_list,obj_list,treshold=0.85,ignore_nf=[]):
+def grouping_simple(matrix_list,obj_list,treshold=0.85):
     #this function helps making groups by using a similarity matric split in different files
     #input:
     #matrix_list = a list of files where the matrices are
     #obj_list = a list of the proc dict in order to have a list of dict of the processes for each rule
     #treshold = treshold for making the groups
-    #ignore_nf = indexes of additional proc to ignore (we want to ignore the ones in nf core sometimes)
-    #output = list of dict and list of indexes of rules
+    #output = list of dict of rules and list of indexes of rules
     
      #get execution time :
     #time1= time.time()
-    to_ignore=ignore_nf #add proc in wf nfcore indexes
+    to_ignore = [] #add proc in wf nfcore indexes
     groups=[]
     line_nb=0
     for file_matrix in matrix_list:
         print(file_matrix)
         with open(file_matrix) as f:
             matrice=json.load(f)
+        print(len(matrice))
         for line in matrice:
-            print(sum([x>treshold for x in line]))
+            #print(sum([x>treshold for x in line]))
             if line_nb not in to_ignore:
                 new_group=[line_nb]
                 for j in range(0,len(line)):
                     if(matrice[line_nb%50][j]>treshold):
                         new_group.append(j)
                 groups.append(list(set(new_group)))
+                print("len group : " + str(len(new_group)))
                 to_ignore+=new_group
             line_nb+=1
             
@@ -235,4 +232,29 @@ def grouping_sim_df_wf (df_sim_n,nb_groups):
     return df_sim_group.sort_values(by=["nb_wf"], ascending=False)
 
 
-
+#remove the nf core workflows from the list and the processes
+def remove_nfc_elements(nf_lev_nfc):
+    new_lines=[]
+    for line in nf_lev_nfc:
+        old_proc=line["list_proc"]
+        old_wf=line["list_wf_names"]
+        new_proc=[]
+        new_wf=[]
+        for el in old_proc:
+            if("nf-core" not in el):
+                new_proc.append(el)
+        for el in old_wf:
+            if("nf-core" not in el):
+                new_wf.append(el)
+        new_lines.append({'nb_reuse' : len(new_proc),
+                              'tools' : line["tools"],
+                              'nb_own' : line["nb_own"],
+                              'list_own' :line["list_own"] ,
+                              'nb_wf' : len(new_wf),
+                              'list_wf' : line["list_wf"],
+                              'list_contrib' : line["list_contrib"],
+                              'nb_contrib' :line["nb_contrib"],
+                              'codes':line["codes"],
+                             'list_proc':new_proc,
+                             'list_wf_names':new_wf})
+    return nf_lev_nfc

@@ -10,6 +10,7 @@ Created on Wed Aug 24 00:05:02 2022
 import json
 import time
 import simil_process
+import pandas as pd
 
 ################
 # DEFINING VARIABLES
@@ -38,10 +39,10 @@ path_matrix_snk_lev="../json/matrix_snk_levenshtein"
 ################
 
     
-with open("../json/nf_proc_tool_shell.json") as f:
+with open("../json/source_files/nf_proc_tool_shell.json") as f:
     nf_proc = json.load(f)
     
-with open('../json/snk_proc_tool_shell.json') as f:
+with open('../json/source_files/snk_proc_tool_shell.json') as f:
     snk_proc = json.load(f)
     
 def importing_json_files(file_wf):
@@ -53,15 +54,15 @@ def importing_json_files(file_wf):
     return wf
 
 #importing the wf and auth dict (github info)
-dict_nf = importing_json_files('../json/wf_new_crawl_nextflow.json')
-auth_nf = importing_json_files('../json/author_clem_nf.json')
-dict_snk = importing_json_files('../json/wf_crawl_snakemake.json')
-auth_snk = importing_json_files('../json/author_clem_snk.json')
+dict_nf = importing_json_files('../json/source_files/wf_new_crawl_nextflow.json')
+auth_nf = importing_json_files('../json/source_files/author_clem_nf.json')
+dict_snk = importing_json_files('../json/source_files/wf_crawl_snakemake.json')
+auth_snk = importing_json_files('../json/source_files/author_clem_snk.json')
 
     
 ################
 # LAUNCHING THE PIPELINE
-################
+###############
 
 # # STEP 1 : compute levenshtein scores
 
@@ -84,7 +85,7 @@ auth_snk = importing_json_files('../json/author_clem_snk.json')
 # print("total run time "+str(time.time()-time0))
 
 
-# STEP 2 : make score matrices
+# # STEP 2 : make score matrices
 
 # print(" MAKING THE SCORE MATRICES" )
 
@@ -99,18 +100,21 @@ auth_snk = importing_json_files('../json/author_clem_snk.json')
 # print("total run time "+str(time.time()-time0))
 
 
-mat_nf_lev = simil_process.get_matrix_files(path_matrix_nf_lev,len(nf_proc))
-mat_snk_lev = simil_process.get_matrix_files(path_matrix_snk_lev,len(snk_proc))
 
-# # Step 3 : make the groups
+
+# Step 3 : make the groups
 
 print(" MAKING THE GROUPS" )
 
+mat_nf_lev = simil_process.get_matrix_files(path_matrix_nf_lev,len(nf_proc))
+mat_snk_lev = simil_process.get_matrix_files(path_matrix_snk_lev,len(snk_proc))
+
+
 print("Nextflow :")
 print("levenshtein")
-groups_nf_lev,groups_nf_lev_index = simil_process.grouping_simple(mat_nf_lev,nf_proc)
+groups_nf_lev , groups_nf_lev_index = simil_process.grouping_simple(mat_nf_lev,nf_proc)
 
-filename = "../json/group_nf_lev.json"
+filename = "../json/source_files/results/group_nf_lev.json"
 with open(filename,"w") as f:
     json.dump(groups_nf_lev,f)
     print(filename)
@@ -118,18 +122,16 @@ with open(filename,"w") as f:
     
 print("Snakemake :")
 print("levenshtein")
-groups_snk_lev,groups_snk_lev_index = simil_process.grouping_simple(mat_snk_lev,snk_proc)
+groups_snk_lev , groups_snk_lev_index = simil_process.grouping_simple(mat_snk_lev,snk_proc)
 
-filename = "../json/group_snk_lev.json"
+filename = "../json/source_files/results/group_snk_lev.json"
 with open(filename,"w") as f:
     json.dump(groups_snk_lev,f)
     print(filename)
     
 
-filenames = ["../json/group_nf_lev.json",
-            "../json/group_nf_ngram.json",
-            "../json/group_snk_lev.json",
-            "../json/group_snk_ngram.json"]
+filenames = ["../json/source_files/results/group_nf_lev.json",
+            "../json/source_files/results/group_snk_lev.json"]
 
 print("total run time "+str(time.time()-time0))
 
@@ -144,7 +146,7 @@ print("levenshtein")
 nf_lev_json, nf_lev_df = simil_process.sim_to_df(groups_nf_lev,dict_nf,"nf")
 df_lev_nf_wf = simil_process.grouping_sim_df_wf(nf_lev_df,len(nf_lev_json))
 
-filename = "../json/sim_nf_lev.json"
+filename = "../json/source_files/results/sim_nf_lev.json"
 filename2 = "../csv/sim_nf_lev_wf.csv"
 
 with open(filename,"w") as f:
@@ -158,7 +160,7 @@ print("levenshtein")
 snk_lev_json, snk_lev_df = simil_process.sim_to_df(groups_snk_lev,dict_snk,"snk")
 df_lev_snk_wf = simil_process.grouping_sim_df_wf(snk_lev_df,len(snk_lev_json))
 
-filename = "../json/sim_snk_lev.json"
+filename = "../json/source_files/results/sim_snk_lev.json"
 filename2 = "../csv/sim_snk_lev_wf.csv"
 
 with open(filename,"w") as f:
@@ -168,7 +170,60 @@ df_lev_snk_wf.to_csv(filename2)
 
 print("total run time "+str(time.time()-time0))
 
-#TODO : verify grouping...
+#get index for lines containing nfcore processes
+idx_nf_core=[]
+i=0
+for line in nf_lev_json:
+    if("nf-core" in line["list_own"]):
+        idx_nf_core.append(i)
+    i+=1
+    
+#get only the non nf core proc
+nf_lev_non_nfc=[]
+i=0
+for line in nf_lev_json:
+    if(i not in idx_nf_core):
+        nf_lev_non_nfc.append(line)
+    i+=1
+
+#get only the nf core proc
+nf_lev_nfc=[]
+i=0
+for line in nf_lev_json:
+    if(i in idx_nf_core):
+        nf_lev_nfc.append(line)
+    i+=1
+    
+nf_lev_non_nfc = simil_process.remove_nfc_elements(nf_lev_non_nfc)
+nf_lev_nfc = simil_process.remove_nfc_elements(nf_lev_nfc)
+
+print("Non nf-core workflows :")
+print("Non nf-core")
+
+nf_lev_df_non_nfc = pd.DataFrame(nf_lev_non_nfc)
+df_lev_nf_non_nfc_wf = simil_process.grouping_sim_df_wf(nf_lev_df_non_nfc,len(nf_lev_json))
+
+filename = "../json/source_files/results/sim_nf_lev_non_nfc.json"
+filename2 = "../csv/sim_nf_lev_non_nfc_wf.csv"
+
+with open(filename,"w") as f:
+    json.dump(nf_lev_non_nfc,f)
+    print(filename)
+df_lev_nf_non_nfc_wf.to_csv(filename2)
+
+
+print("Non nf-core")
+
+nf_lev_df_nfc = pd.DataFrame(nf_lev_nfc)
+df_lev_nf_nfc_wf = simil_process.grouping_sim_df_wf(nf_lev_df_nfc,len(nf_lev_json))
+
+filename = "../json/source_files/results/sim_nf_lev_nfc.json"
+filename2 = "../csv/sim_nf_lev_nfc_wf.csv"
+
+with open(filename,"w") as f:
+    json.dump(nf_lev_nfc,f)
+    print(filename)
+df_lev_nf_nfc_wf.to_csv(filename2)
 
 
 
