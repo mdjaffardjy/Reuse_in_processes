@@ -82,7 +82,6 @@ def make_score_matrices(nb_proc,path_matrix,path_scores,model_filename,score_nam
         filenames.append(path_model+str(nb_proc-1)+".json")
         sizes.append((nb_proc-1)%50)
     
-    
     #open each file and make a matrix out of it in another file : each matrix file contains 50 lines
     z=0
     x=0
@@ -94,13 +93,20 @@ def make_score_matrices(nb_proc,path_matrix,path_scores,model_filename,score_nam
         x+=sizes[k]
         with open(file) as f:
             new_lines=json.load(f)
+          
         for i in range(0,sizes[k]):
             new_scores=[el[score_name] for el in new_lines[0:j-z]]
+            # print(len(new_scores))
+            # print(new_lines[0:j-z][-1]['rule2'])
             scores_el = [1]+new_scores
             zeros = np.zeros(z)
             z+=1
             new_matrix.append(list(zeros)+scores_el)
-            new_lines=new_lines[j-z:]   
+            new_lines=new_lines[j-z+1:] 
+            # if(len(new_lines)>0):
+            #     print(new_lines[0]['rule1'])
+            # else:
+            #     print(f"i = {i}")
         matrix_filename= path_matrix+"/matrix_"+str(x)+".json"
         matrix_filenames.append(matrix_filename)
         #print(np.shape(new_matrix)) 

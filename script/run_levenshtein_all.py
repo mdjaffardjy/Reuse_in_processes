@@ -87,17 +87,17 @@ auth_snk = importing_json_files('../json/source_files/author_clem_snk.json')
 
 # # STEP 2 : make score matrices
 
-# print(" MAKING THE SCORE MATRICES" )
+print(" MAKING THE SCORE MATRICES" )
 
-# print("Nextflow :")
-# print("levenshtein")
-# mat_nf_lev = simil_process.make_score_matrices(len(nf_proc),path_matrix_nf_lev,nf_sim_path,"levenshtein_nf_tools_shell_","levenshtein")
+print("Nextflow :")
+print("levenshtein")
+mat_nf_lev = simil_process.make_score_matrices(len(nf_proc),path_matrix_nf_lev,nf_sim_path,"levenshtein_nf_tools_shell_","levenshtein")
 
-# print("Snakemake :")
-# print("levenshtein")
-# mat_snk_lev = simil_process.make_score_matrices(len(snk_proc),path_matrix_snk_lev,snk_sim_path,"levenshtein_snk_tools_shell_","levenshtein")
+print("Snakemake :")
+print("levenshtein")
+mat_snk_lev = simil_process.make_score_matrices(len(snk_proc),path_matrix_snk_lev,snk_sim_path,"levenshtein_snk_tools_shell_","levenshtein")
 
-# print("total run time "+str(time.time()-time0))
+print("total run time "+str(time.time()-time0))
 
 
 
