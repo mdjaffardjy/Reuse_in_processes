@@ -140,24 +140,29 @@ def grouping_simple(matrix_list,obj_list,treshold=0.85):
     
      #get execution time :
     #time1= time.time()
-    to_ignore = [] #add proc in wf nfcore indexes
-    groups=[]
-    line_nb=0
+    to_ignore = [] #already added groups
+    groups = []
+    line_nb = 0
+    line_nb_parsed = []
     for file_matrix in matrix_list:
         print(file_matrix)
         with open(file_matrix) as f:
             matrice=json.load(f)
-        print(len(matrice))
+        #print(len(matrice))
         for line in matrice:
             #print(sum([x>treshold for x in line]))
             if line_nb not in to_ignore:
-                new_group=[line_nb]
+                new_group = []
+                line_nb_parsed.append(line_nb)
+                # print(f"id : {len(groups)}")
+                # print(line_nb)
                 for j in range(0,len(line)):
-                    if(matrice[line_nb%50][j]>treshold):
+                    if(line[j]>treshold):
                         new_group.append(j)
-                groups.append(list(set(new_group)))
-                print("len group : " + str(len(new_group)))
+                groups.append((new_group))
                 to_ignore+=new_group
+                # print(f"len group : {len(new_group)}")
+                # print(f"len to_ignore : {len(to_ignore)}")
             line_nb+=1
             
     #turn the groups into lists of snk or nf rules
@@ -169,7 +174,7 @@ def grouping_simple(matrix_list,obj_list,treshold=0.85):
         simil_obj.append(group_obj)
     print(len(simil_obj))
     #print(time.time()-time1)
-    return simil_obj, groups
+    return simil_obj, groups #, line_nb_parsed
 
 
 
@@ -241,6 +246,9 @@ def grouping_sim_df_wf (df_sim_n,nb_groups):
 #remove the nf core workflows from the list and the processes
 def remove_nfc_elements(nf_lev_nfc):
     new_lines=[]
+    
+    removed_wfs = []
+    
     for line in nf_lev_nfc:
         old_proc=line["list_proc"]
         old_wf=line["list_wf_names"]
@@ -252,6 +260,8 @@ def remove_nfc_elements(nf_lev_nfc):
         for el in old_wf:
             if("nf-core" not in el):
                 new_wf.append(el)
+            else:
+                removed_wfs.append(el)
         new_lines.append({'nb_reuse' : len(new_proc),
                               'tools' : line["tools"],
                               'nb_own' : line["nb_own"],
@@ -263,4 +273,5 @@ def remove_nfc_elements(nf_lev_nfc):
                               'codes':line["codes"],
                              'list_proc':new_proc,
                              'list_wf_names':new_wf})
+    print(removed_wfs)
     return nf_lev_nfc

@@ -64,28 +64,28 @@ auth_snk = importing_json_files('../json/source_files/author_clem_snk.json')
 # LAUNCHING THE PIPELINE
 ###############
 
-# # STEP 1 : compute levenshtein scores
+# STEP 1 : compute levenshtein scores
 
-# print(" COMPUTING SCORES" )
+print(" COMPUTING SCORES" )
 
-# ##nf tools proc shell
-# print("Nextflow :")
-# print("levenshtein")
-# simil_process.levenshtein_proc_shell(nf_proc,0,nf_proc_path)
-
-
-# print("total run time "+str(time.time()-time0))
-
-# #snk tools proc shell
-# print("Snakemake :")
-# print("levenshtein")
-# simil_process.levenshtein_proc_shell(snk_proc,0,snk_proc_path)
+##nf tools proc shell
+print("Nextflow :")
+print("levenshtein")
+simil_process.levenshtein_proc_shell(nf_proc,0,nf_proc_path)
 
 
-# print("total run time "+str(time.time()-time0))
+print("total run time "+str(time.time()-time0))
+
+#snk tools proc shell
+print("Snakemake :")
+print("levenshtein")
+simil_process.levenshtein_proc_shell(snk_proc,0,snk_proc_path)
 
 
-# # STEP 2 : make score matrices
+print("total run time "+str(time.time()-time0))
+
+
+# STEP 2 : make score matrices
 
 print(" MAKING THE SCORE MATRICES" )
 
@@ -120,6 +120,7 @@ with open(filename,"w") as f:
     print(filename)
     
     
+    
 print("Snakemake :")
 print("levenshtein")
 groups_snk_lev , groups_snk_lev_index = simil_process.grouping_simple(mat_snk_lev,snk_proc)
@@ -128,7 +129,7 @@ filename = "../json/source_files/results/group_snk_lev.json"
 with open(filename,"w") as f:
     json.dump(groups_snk_lev,f)
     print(filename)
-    
+ 
 
 filenames = ["../json/source_files/results/group_nf_lev.json",
             "../json/source_files/results/group_snk_lev.json"]
