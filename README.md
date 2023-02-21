@@ -21,7 +21,7 @@ Please submit GitHub issues to provide feedback or ask for new features, and con
 
 ## To Run
 
-A conda environment can be found here.
+A conda environment can be found [here](json/env_conda.txt).
 
 ### Step 1 : compute the scores and generate dataframes
 
