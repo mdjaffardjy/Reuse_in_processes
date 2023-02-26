@@ -164,9 +164,11 @@ def grouping_simple(matrix_list,obj_list,treshold=0.85):
                 # print(f"len group : {len(new_group)}")
                 # print(f"len to_ignore : {len(to_ignore)}")
             line_nb+=1
-            
+    
+    groups = correct_groups(obj_list, groups)
     #turn the groups into lists of snk or nf rules
     simil_obj=[]
+    
     for group in groups:
         group_obj = []
         for el in group:
@@ -248,30 +250,92 @@ def remove_nfc_elements(nf_lev_nfc):
     new_lines=[]
     
     removed_wfs = []
+    removed_procs = []
     
     for line in nf_lev_nfc:
-        old_proc=line["list_proc"]
-        old_wf=line["list_wf_names"]
-        new_proc=[]
-        new_wf=[]
-        for el in old_proc:
-            if("nf-core" not in el):
-                new_proc.append(el)
-        for el in old_wf:
-            if("nf-core" not in el):
-                new_wf.append(el)
-            else:
-                removed_wfs.append(el)
-        new_lines.append({'nb_reuse' : len(new_proc),
-                              'tools' : line["tools"],
-                              'nb_own' : line["nb_own"],
-                              'list_own' :line["list_own"] ,
-                              'nb_wf' : len(new_wf),
-                              'list_wf' : line["list_wf"],
-                              'list_contrib' : line["list_contrib"],
-                              'nb_contrib' :line["nb_contrib"],
-                              'codes':line["codes"],
-                             'list_proc':new_proc,
-                             'list_wf_names':new_wf})
-    print(removed_wfs)
+        if(line["nb_wf"]>1):
+            old_proc=line["list_proc"]
+            old_wf=line["list_wf_names"]
+            new_proc=[]
+            new_wf=[]
+            for el in old_proc:
+                if(el.split("/")[0]!="nf-core"):
+                    new_proc.append(el)
+                else:
+                    removed_procs.append(el)
+            for el in old_wf:
+                if(el.split("/")[0]!="nf-core"):
+                    new_wf.append(el)
+                else:
+                    removed_wfs.append(el)
+            new_lines.append({'nb_reuse' : len(new_proc),
+                                  'tools' : line["tools"],
+                                  'nb_own' : line["nb_own"]-1,
+                                  'list_own' : line["list_own"] ,
+                                  'nb_wf' : len(new_wf),
+                                  'list_wf' : line["list_wf"],
+                                  'list_contrib' : line["list_contrib"],
+                                  'nb_contrib' : line["nb_contrib"],
+                                  'codes': line["codes"],
+                                 'list_proc': new_proc,
+                                 'list_wf_names': new_wf})
+    
     return nf_lev_nfc
+
+def groups_per_proc(list_proc,grps):
+    list_grps = []
+    for i in range(len(list_proc)):
+        idx_grps = []
+        for j in range(len(grps)):
+            if(i in grps[j]):
+                idx_grps.append(j)
+        list_grps.append(idx_grps)
+    return list_grps 
+
+def groupes_fusion(list_grps_fusion):
+    
+    data = [list(x) for x in list_grps_fusion]
+    
+    list_elements_fusion = []
+    for grp in data:
+        list_elements_fusion+=grp
+    list_elements_fusion = list(set(list_elements_fusion))
+    
+    result = []
+    for d in data :
+        d = set(d)
+    
+        matched = [d]
+        unmatched = []
+        # first divide into matching and non-matching groups
+        for g in result:
+            if d & g:
+                matched.append(g)
+            else:
+                unmatched.append(g)
+        # then combine all matching groups into one group
+        # while leaving unmatched groups intact
+        result = unmatched + [set().union(*matched)]
+    
+    return result, list_elements_fusion 
+    
+def correct_groups(list_procs, list_idx_grps):
+    
+    grps_proc = groups_per_proc(list_procs, list_idx_grps)
+    grps_proc = list(set([tuple(x) for x in grps_proc]))
+    
+    new_list_groups = []
+    
+    grps_fusion, list_els_fusion = groupes_fusion(grps_proc)
+    
+    for i in range(len(list_idx_grps)):
+        if i not in list_els_fusion:
+            new_list_groups.append(list_idx_grps[i])
+            
+    for grp in grps_fusion:
+        new_subgrp = []
+        for el in grp:
+            new_subgrp+=list_idx_grps[el]
+        new_list_groups.append(list(set(new_subgrp)))
+    
+    return new_list_groups

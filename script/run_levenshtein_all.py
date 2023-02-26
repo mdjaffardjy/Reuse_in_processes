@@ -60,44 +60,44 @@ dict_snk = importing_json_files('../json/source_files/wf_crawl_snakemake.json')
 auth_snk = importing_json_files('../json/source_files/author_clem_snk.json')
 
     
-################
-# LAUNCHING THE PIPELINE
-###############
+# ################
+# # LAUNCHING THE PIPELINE
+# ###############
 
-# STEP 1 : compute levenshtein scores
+# # STEP 1 : compute levenshtein scores
 
-print(" COMPUTING SCORES" )
+# print(" COMPUTING SCORES" )
 
-##nf tools proc shell
-print("Nextflow :")
-print("levenshtein")
-simil_process.levenshtein_proc_shell(nf_proc,0,nf_proc_path)
-
-
-print("total run time "+str(time.time()-time0))
-
-#snk tools proc shell
-print("Snakemake :")
-print("levenshtein")
-simil_process.levenshtein_proc_shell(snk_proc,0,snk_proc_path)
+# ##nf tools proc shell
+# print("Nextflow :")
+# print("levenshtein")
+# simil_process.levenshtein_proc_shell(nf_proc,0,nf_proc_path)
 
 
-print("total run time "+str(time.time()-time0))
+# print("total run time "+str(time.time()-time0))
+
+# #snk tools proc shell
+# print("Snakemake :")
+# print("levenshtein")
+# simil_process.levenshtein_proc_shell(snk_proc,0,snk_proc_path)
 
 
-# STEP 2 : make score matrices
+# print("total run time "+str(time.time()-time0))
 
-print(" MAKING THE SCORE MATRICES" )
 
-print("Nextflow :")
-print("levenshtein")
-mat_nf_lev = simil_process.make_score_matrices(len(nf_proc),path_matrix_nf_lev,nf_sim_path,"levenshtein_nf_tools_shell_","levenshtein")
+# # STEP 2 : make score matrices
 
-print("Snakemake :")
-print("levenshtein")
-mat_snk_lev = simil_process.make_score_matrices(len(snk_proc),path_matrix_snk_lev,snk_sim_path,"levenshtein_snk_tools_shell_","levenshtein")
+# print(" MAKING THE SCORE MATRICES" )
 
-print("total run time "+str(time.time()-time0))
+# print("Nextflow :")
+# print("levenshtein")
+# mat_nf_lev = simil_process.make_score_matrices(len(nf_proc),path_matrix_nf_lev,nf_sim_path,"levenshtein_nf_tools_shell_","levenshtein")
+
+# print("Snakemake :")
+# print("levenshtein")
+# mat_snk_lev = simil_process.make_score_matrices(len(snk_proc),path_matrix_snk_lev,snk_sim_path,"levenshtein_snk_tools_shell_","levenshtein")
+
+# print("total run time "+str(time.time()-time0))
 
 
 
@@ -195,7 +195,6 @@ for line in nf_lev_json:
         nf_lev_nfc.append(line)
     i+=1
     
-nf_lev_non_nfc = simil_process.remove_nfc_elements(nf_lev_non_nfc)
 nf_lev_nfc = simil_process.remove_nfc_elements(nf_lev_nfc)
 
 print("Non nf-core workflows :")
@@ -213,7 +212,7 @@ with open(filename,"w") as f:
 df_lev_nf_non_nfc_wf.to_csv(filename2)
 
 
-print("Non nf-core")
+print("nf-core")
 
 nf_lev_df_nfc = pd.DataFrame(nf_lev_nfc)
 df_lev_nf_nfc_wf = simil_process.grouping_sim_df_wf(nf_lev_df_nfc,len(nf_lev_json))
