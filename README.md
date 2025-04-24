@@ -35,7 +35,7 @@ python3 script/run_levenshtein_all.py
 
 The [notebooks](/notebook/) containing the analyses can now be launched :
 - To take a look at process reuse repartition in workflows in [this notebook](/notebook/Figures_reuse_processes_simil_shell.ipynb). This notebook contains the figures for nextflow and snakemake processors reuse, as well as the comparison between nf-core and non nf-core processors reuse.
-- To see the tools repartitions in workflows, the code can be foudn in [this notebook](/notebook/group_patterns_proc.ipynb) 
+- To see the tools repartitions in workflows, the code can be found in [this notebook](/notebook/group_patterns_proc.ipynb) 
 
 
 
